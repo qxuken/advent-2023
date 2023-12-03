@@ -1,8 +1,6 @@
 use advent_2023::number_trie::NumberTrie;
 use once_cell::sync::Lazy;
 
-const INPUT: &str = include_str!("../input/day1_trebuchet.txt");
-
 const SPELLED_NUMBERS: [(&str, usize); 9] = [
     ("one", 1),
     ("two", 2),
@@ -65,18 +63,14 @@ pub fn solution(inp: &str, trie: &NumberTrie, rev_trie: &NumberTrie) -> usize {
 }
 
 fn main() {
-    if std::env::args()
-        .nth(1)
-        .is_some_and(|val| val == "no_spelled")
-    {
-        let empty_trie = NumberTrie::default();
-        println!("{}", solution(INPUT, &empty_trie, &empty_trie))
-    } else {
-        println!(
-            "{}",
-            solution(INPUT, &SPELLED_NUMBERS_TRIE, &REVERSED_SPELLED_NUMBERS_TRIE)
-        )
-    }
+    let input = include_str!("../input/day1_trebuchet.txt");
+
+    let empty_trie = NumberTrie::default();
+    println!("{}", solution(input, &empty_trie, &empty_trie));
+    println!(
+        "{}",
+        solution(input, &SPELLED_NUMBERS_TRIE, &REVERSED_SPELLED_NUMBERS_TRIE)
+    );
 }
 
 #[cfg(test)]

@@ -1,6 +1,3 @@
-#![allow(unused)]
-const INPUT: &str = include_str!("../input/day2_cube_conundrum.txt");
-
 #[derive(PartialEq)]
 enum Color {
     Red,
@@ -70,7 +67,7 @@ fn sum_of_min_required_cubes_power(inp: &str) -> usize {
     let mut sum = 0;
     for line in inp.split('\n') {
         let mut chars = line.chars();
-        if let Some(game_id) = find_game_id(&mut chars) {
+        if find_game_id(&mut chars).is_some() {
             let mut max_r = 0;
             let mut max_g = 0;
             let mut max_b = 0;
@@ -88,8 +85,10 @@ fn sum_of_min_required_cubes_power(inp: &str) -> usize {
 }
 
 fn main() {
-    println!("{}", sum_of_possible_games(INPUT, 12, 13, 14));
-    println!("{}", sum_of_min_required_cubes_power(INPUT));
+    let input = include_str!("../input/day2_cube_conundrum.txt");
+
+    println!("{}", sum_of_possible_games(input, 12, 13, 14));
+    println!("{}", sum_of_min_required_cubes_power(input));
 }
 
 #[cfg(test)]
@@ -99,11 +98,11 @@ mod tests {
     #[test]
     fn test_sum_of_possible_games() {
         let input = r#"
-          Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
-          Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue
-          Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
-          Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
-          Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green
+            Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
+            Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue
+            Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
+            Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
+            Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green
         "#;
         assert_eq!(sum_of_possible_games(input, 12, 13, 14), 1 + 2 + 5);
     }
@@ -111,11 +110,11 @@ mod tests {
     #[test]
     fn test_sum_of_min_cubes_power() {
         let input = r#"
-          Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
-          Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue
-          Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
-          Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
-          Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green
+            Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
+            Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue
+            Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
+            Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
+            Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green
         "#;
         assert_eq!(
             sum_of_min_required_cubes_power(input),
