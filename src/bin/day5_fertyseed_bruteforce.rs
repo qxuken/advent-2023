@@ -16,12 +16,12 @@ impl ConversionMapRange {
         }
     }
 
-    fn has_conversions(&self, number: usize) -> bool {
+    fn can_convert(&self, number: usize) -> bool {
         number >= self.source_start && number < self.source_start + self.len
     }
 
     fn convert(&self, number: usize) -> Option<usize> {
-        if self.has_conversions(number) {
+        if self.can_convert(number) {
             Some(self.destination_start + number - self.source_start)
         } else {
             None
@@ -49,10 +49,15 @@ impl ConversionMap {
         self.ranges.is_empty()
     }
 
+    fn find<F>(&self, f: F) -> Option<&ConversionMapRange>
+    where
+        F: Fn(&&ConversionMapRange) -> bool,
+    {
+        self.ranges.iter().find(f)
+    }
+
     fn convert(&self, number: usize) -> usize {
-        self.ranges
-            .iter()
-            .find(|r| r.has_conversions(number))
+        self.find(|r| r.can_convert(number))
             .and_then(|m| m.convert(number))
             .unwrap_or(number)
     }
@@ -62,6 +67,24 @@ impl FromIterator<[usize; 3]> for ConversionMap {
     fn from_iter<T: IntoIterator<Item = [usize; 3]>>(iter: T) -> Self {
         let ranges: Vec<ConversionMapRange> = iter.into_iter().map(|r| r.into()).collect();
         Self::new(ranges)
+    }
+}
+
+impl ConversionMap {
+    fn extract<'a>(lines: &mut impl Iterator<Item = &'a str>) -> Option<ConversionMap> {
+        let map: ConversionMap = lines
+            .by_ref()
+            .skip_while(|s| !s.starts_with(|ch: char| ch.is_ascii_digit()))
+            .take_while(|s| !s.is_empty())
+            .map(|s| {
+                s.split_ascii_whitespace()
+                    .filter_map(|n| n.parse().ok())
+                    .collect::<Vec<usize>>()
+            })
+            .filter(|vec| vec.len() == 3)
+            .map(|vec| [vec[0], vec[1], vec[2]])
+            .collect();
+        Some(map).filter(|m| !m.is_empty())
     }
 }
 
@@ -91,26 +114,10 @@ fn extract_seed_ranges<'a>(lines: &mut impl Iterator<Item = &'a str>) -> Vec<usi
     }
 }
 
-fn extract_map<'a>(lines: &mut impl Iterator<Item = &'a str>) -> Option<ConversionMap> {
-    let map: ConversionMap = lines
-        .by_ref()
-        .skip_while(|s| !s.starts_with(|ch: char| ch.is_ascii_digit()))
-        .take_while(|s| !s.is_empty())
-        .map(|s| {
-            s.split_ascii_whitespace()
-                .filter_map(|n| n.parse().ok())
-                .collect::<Vec<usize>>()
-        })
-        .filter(|vec| vec.len() == 3)
-        .map(|vec| [vec[0], vec[1], vec[2]])
-        .collect();
-    Some(map).filter(|m| !m.is_empty())
-}
-
 fn min_location(input: &str) -> usize {
     let mut lines = input.split('\n').map(|s| s.trim());
     let mut seeds = extract_seeds(&mut lines);
-    while let Some(map) = extract_map(&mut lines) {
+    while let Some(map) = ConversionMap::extract(&mut lines) {
         for seed in seeds.iter_mut() {
             *seed = map.convert(*seed);
         }
@@ -122,7 +129,7 @@ fn min_location_with_ranges(input: &str) -> usize {
     let mut lines = input.split('\n').map(|s| s.trim());
     let seeds = extract_seed_ranges(&mut lines);
     let mut maps = vec![];
-    while let Some(map) = extract_map(&mut lines) {
+    while let Some(map) = ConversionMap::extract(&mut lines) {
         maps.push(map);
     }
     seeds
