@@ -64,7 +64,7 @@ impl From<[usize; 3]> for ConversionMapRange {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct ConversionMap {
     ranges: Vec<ConversionMapRange>,
 }
@@ -141,16 +141,88 @@ impl ConversionMap {
         map.fill_gaps(highest_number);
         Some(map).filter(|m| !m.is_empty())
     }
+
+    // s   t
+    // 1---|  1
+    // 2---|  2--
+    // 3--x|> 3--
+    // 4  ||> 4--
+    // 5  |>  5
+    // ==== step 1
+    // source range dest = 3, source = 1, len = 3
+    // remain = 3, curr = (s.dest + (s.len - remain)) -> 3
+    // target range start = 2, len = 3
+    // min = min(remain -> 3, (t.len - (curr - t.start)) -> 2)
+    // new range start = s.start + (s.len - remain), len = min, dest = t.dest + (curr - t.start)
+    // ==== step 2
+    // source range dest = 3, source = 1, len = 3
+    // remain = 1, curr = 5
+    // target range range start = 5, len = ...
+    fn compress(&self, other: &ConversionMap) -> ConversionMap {
+        let mut ranges = vec![];
+        for source_range in self.ranges.iter().copied() {
+            let mut remaining = source_range.len;
+            while remaining > 0 {
+                let source_diff = source_range.len - remaining;
+                let current = source_range.destination_start + source_diff;
+
+                if let Some(target_range) = other.find(|r| r.can_convert(current)) {
+                    let target_diff = current - target_range.source_start;
+                    let min_range = remaining.min(target_range.len - target_diff);
+                    remaining -= min_range;
+                    ranges.push(ConversionMapRange::new(
+                        target_range.destination_start + target_diff,
+                        source_range.source_start + source_diff,
+                        min_range,
+                    ));
+                } else {
+                    remaining -= 1;
+                    ranges.push(ConversionMapRange::new(
+                        source_range.destination_start + source_diff,
+                        source_range.source_start + source_diff,
+                        1,
+                    ));
+                }
+            }
+        }
+        for i in (1..ranges.len()).rev() {
+            let should_merge = {
+                let prev_range = &ranges[i - 1];
+                let curr_range = &ranges[i];
+                curr_range.destination_start as isize - prev_range.len as isize
+                    == prev_range.destination_start as isize
+                    && curr_range.source_start as isize - prev_range.len as isize
+                        == prev_range.source_start as isize
+            };
+            if should_merge {
+                ranges[i - 1].len += ranges[i].len;
+                ranges.remove(i);
+            }
+        }
+        ConversionMap::new(ranges)
+    }
 }
 
 fn min_location_with_ranges(input: &str) -> usize {
     let mut lines = input.split('\n').map(|s| s.trim());
     let seeds = SeedRange::extract_ranges(&mut lines);
-    let last_seed = seeds.last().unwrap();
+    let last_seed = seeds.last().expect("no seeds found");
     let highest_number = last_seed.start + last_seed.len;
-    let mut maps = vec![];
+    let mut compressed_map: Option<ConversionMap> = None;
+
+    let start = std::time::Instant::now();
     while let Some(map) = ConversionMap::extract(&mut lines, highest_number) {
-        maps.push(map);
+        compressed_map = compressed_map.map(|m| m.compress(&map)).or(Some(map));
+    }
+    let compressed_map = compressed_map.expect("Map is empty");
+    let duration = start.elapsed();
+    println!("Map compressed in {:?}", duration);
+
+    for path in compressed_map.ranges.iter() {
+        println!(
+            "{:010} -> {:010} | {:010}",
+            path.source_start, path.destination_start, path.len
+        );
     }
 
     let start = std::time::Instant::now();
@@ -162,13 +234,11 @@ fn min_location_with_ranges(input: &str) -> usize {
             while remaining > 0 {
                 let mut min_range = remaining;
                 let mut current = s.start + s.len - remaining;
-                for map in maps.iter() {
-                    if let Some(range) = map.find(|r| r.can_convert(current)) {
-                        min_range = min_range.min(range.len - (current - range.source_start));
-                        current = range.convert(current).unwrap();
-                    } else {
-                        min_range = 1;
-                    }
+                if let Some(range) = compressed_map.find(|r| r.can_convert(current)) {
+                    min_range = min_range.min(range.len - (current - range.source_start));
+                    current = range.convert(current).unwrap();
+                } else {
+                    min_range = 1;
                 }
                 lowest = lowest.min(current);
                 remaining -= min_range;
@@ -177,7 +247,6 @@ fn min_location_with_ranges(input: &str) -> usize {
         })
         .min()
         .unwrap();
-
     let duration = start.elapsed();
     println!("Solution ready in {:?}", duration);
     min

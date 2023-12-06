@@ -122,7 +122,11 @@ fn min_location(input: &str) -> usize {
             *seed = map.convert(*seed);
         }
     }
-    seeds.into_iter().min().unwrap()
+    let start = std::time::Instant::now();
+    let min = seeds.into_iter().min().unwrap();
+    let duration = start.elapsed();
+    println!("Solution ready in {:?}", duration);
+    min
 }
 
 fn min_location_with_ranges(input: &str) -> usize {
@@ -132,11 +136,17 @@ fn min_location_with_ranges(input: &str) -> usize {
     while let Some(map) = ConversionMap::extract(&mut lines) {
         maps.push(map);
     }
-    seeds
+
+    let start = std::time::Instant::now();
+    let min = seeds
         .into_par_iter()
         .map(|x| maps.iter().fold(x, |acc, map| map.convert(acc)))
         .min()
-        .unwrap()
+        .unwrap();
+    let duration = start.elapsed();
+    println!("Solution ready in {:?}", duration);
+
+    min
 }
 
 fn main() {
