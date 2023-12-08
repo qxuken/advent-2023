@@ -1,4 +1,3 @@
-#![allow(unused)]
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 
@@ -35,9 +34,9 @@ impl From<&[u8; 5]> for HandType {
             });
         if let Some((count, value)) = map.get(&0).copied().zip(
             map.iter_mut()
-                .filter(|(&k, v)| k != &0)
-                .max_by_key(|(k, &mut v)| v)
-                .map(|(k, v)| v),
+                .filter(|(&k, _v)| k != &0)
+                .max_by_key(|(_k, &mut v)| v)
+                .map(|(_k, v)| v),
         ) {
             *value += count;
             map.remove(&0);
