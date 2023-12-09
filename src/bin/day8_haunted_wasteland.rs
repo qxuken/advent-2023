@@ -1,11 +1,8 @@
-#![allow(unused)]
-
 use advent_2023::lcm::lcm;
 use anyhow::{bail, Error, Result};
 use rayon::prelude::*;
 use std::{
     collections::{HashMap, HashSet},
-    rc::Rc,
     sync::Arc,
 };
 
@@ -16,7 +13,7 @@ enum Direction {
 }
 
 impl TryFrom<char> for Direction {
-    type Error = anyhow::Error;
+    type Error = Error;
 
     fn try_from(value: char) -> Result<Self> {
         match value {
@@ -71,7 +68,7 @@ impl Node {
         true
     }
 
-    fn extract_from_line<'a>(line: &mut impl Iterator<Item = &'a str>) -> Option<([u8; 3], Node)> {
+    fn from_line<'a>(line: &mut impl Iterator<Item = &'a str>) -> Option<([u8; 3], Node)> {
         line.next()
             .and_then(|line| {
                 let mut split = line.trim().split('=');
@@ -114,7 +111,7 @@ struct Map {
 impl Map {
     fn from_input<'a>(line: &mut impl Iterator<Item = &'a str>) -> Map {
         let mut dictionary = HashMap::new();
-        while let Some((code, node)) = Node::extract_from_line(line) {
+        while let Some((code, node)) = Node::from_line(line) {
             dictionary.insert(code, Arc::new(node));
         }
         Map { dictionary }
@@ -123,17 +120,7 @@ impl Map {
     fn steps_to_exit(&self, path: &[Direction], start: [u8; 3], end: [u8; 3]) -> usize {
         self.dictionary
             .par_iter()
-            .filter(|(k, _)| {
-                for i in 0..3 {
-                    if start[i] == b'.' {
-                        continue;
-                    }
-                    if start[i] != k[i] {
-                        return false;
-                    }
-                }
-                true
-            })
+            .filter(|(_k, node)| node.is_match_value(&start))
             .map(|(_k, v)| v)
             .map(|start_node| {
                 let mut seen = HashSet::new();
